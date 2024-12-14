@@ -1,0 +1,15 @@
+{
+  "name": "ed-average",
+  "version": "1.0.0",
+  "description": "ed average calculator",
+  "main": "node.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2",
+    "selenium-webdriver": "^4.27.0"
+  }
+}

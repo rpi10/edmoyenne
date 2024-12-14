@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ecole Directe - Notes</title>
+    <style>
+        :root {
+            --primary-color: #1F5673;
+            --secondary-color: #6DA5BF;
+            --background-color: #F4F7F9;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .ed-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .ed-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .login-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .login-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .login-form input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .login-form button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-form button:hover {
+            background-color: var(--primary-color);
+        }
+
+        #gradeTable {
+            width: 100%;
+            background-color: white;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #gradeTable th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        #gradeTable td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #gradeTable tr:last-child td {
+            border-bottom: none;
+        }
+
+        #loading, #errorMessage {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #loading {
+            color: var(--primary-color);
+            display: none;
+        }
+
+        #errorMessage {
+            color: #d9534f;
+        }
+
+        .subject-row {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .average-row {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="ed-header">
+            <h1>Espace Notes</h1>
+        </div>
+
+        <div class="login-section">
+            <form id="loginForm" class="login-form">
+                <input type="text" id="username" placeholder="Identifiant" required>
+                <input type="password" id="password" placeholder="Mot de passe" required>
+                <button type="submit">Connexion</button>
+            </form>
+        </div>
+
+        <div id="loading">
+            Chargement de vos notes... Veuillez patienter
+        </div>
+
+        <div id="errorMessage"></div>
+
+        <table id="gradeTable">
+            <thead>
+                <tr>
+                    <th>Discipline</th>
+                    <th>Notes</th>
+                    <th>Moyenne</th>
+                </tr>
+            </thead>
+            <tbody id="gradeTableBody">
+                <!-- Grades will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loadingIndicator = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const gradeTableBody = document.getElementById('gradeTableBody');
+
+            // Reset previous state
+            errorMessage.textContent = '';
+            gradeTableBody.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch('/scrape-grades', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Populate table
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    let rowClass = '';
+                    let fontWeight = 'normal';
+
+                    if (row[0] && row[2] === '') {
+                        rowClass = 'subject-row';
+                        fontWeight = 'bold';
+                    }
+
+                    if (row[2] && row[2].includes('Moyenne')) {
+                        rowClass = 'average-row';
+                        fontWeight = 'bold';
+                    }
+
+                    // Only add class if rowClass is not empty
+                    if (rowClass) {
+                        tr.classList.add(rowClass);
+                    }
+
+                    tr.innerHTML = `
+                        <td style="font-weight: ${fontWeight};">${row[0]}</td>
+                        <td style="font-weight: ${fontWeight};">${row[1]}</td>
+                        <td style="font-weight: ${fontWeight};">${row[2]}</td>
+                    `;
+
+                    gradeTableBody.appendChild(tr);
+                });
+
+                loadingIndicator.style.display = 'none';
+            } catch (error) {
+                loadingIndicator.style.display = 'none';
+                errorMessage.textContent = `Erreur : ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
